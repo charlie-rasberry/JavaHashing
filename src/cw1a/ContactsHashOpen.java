@@ -5,14 +5,15 @@ package cw1a;
  * @author DL 2025-01
  */
 public class ContactsHashOpen implements IContactDB {  
-    private final int initialTableCapacity = 1000;
+    private final int initialTableCapacity = 1009;
+
     private Contact[] table;
     private int tableCapacity;
     private int numEntries;
     private int totalVisited = 0;
     
 
-    private static final double maxLoadFactor = 70.0;
+    private static final double maxLoadFactor = 50.0;   //  changed from 70 to 50 for quadratic probing
             
     public int getNumEntries(){return numEntries;}
     public void resetTotalVisited() {totalVisited = 0;}
@@ -42,7 +43,7 @@ public class ContactsHashOpen implements IContactDB {
 
         int hash = 0;
         //  prime number needed as multiplier
-        int MULTIPLIER = 31;
+        int MULTIPLIER = 19;
         for (int i = 0; i < s.length(); i++) {
             hash = (hash * MULTIPLIER + s.charAt(i)) % table.length;
         }
@@ -57,14 +58,21 @@ public class ContactsHashOpen implements IContactDB {
     }
 
     private int findPos(String name) {
-        assert name != null && !name.trim().equals("");
+        assert name != null && !name.trim().equals(""); //  Check empty
+
         int pos = hash(name);
-        int numVisited = 1;  
+        int numVisited = 1;
+        int offset = 1;
+
         System.out.println("finding " + pos + ": " + name );
+
         while (table[pos] != null && !name.equals(table[pos].getName())) {
-           System.out.println("Visiting bucket " + pos + ": " + table[pos] );
-           numVisited++;
-           pos = (pos + 1) % table.length; // linear probing
+            System.out.println("Visiting bucket " + pos + ": " + table[pos] );
+
+
+            pos = (pos + offset) % table.length;     // quadratic probing
+            offset += 2;
+            numVisited++;
         }  
         System.out.println("number of  buckets visited = " + numVisited); //    Number of buckets visited each call is very high the total is extreme
         totalVisited += numVisited;
@@ -73,6 +81,25 @@ public class ContactsHashOpen implements IContactDB {
         return pos;
     }
 
+    private boolean isPrime(int n) {
+        if (n <=1) return false;
+        if (n <= 3) return true;
+
+        //  Check from 2 to sqrt of n
+        for (int i = 2; i * i <= n; i++) {
+            if (n % i == 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private int nextPrime(int n) {
+        while (!isPrime(n)) {
+            n++;
+        }
+        return n;
+    }
     /**
      * Determines whether a Contact name exists as a key inside the database
      *
@@ -151,10 +178,12 @@ public class ContactsHashOpen implements IContactDB {
      */
     public Contact put(Contact contact) {
         assert contact != null;
-       Contact previous;
+        Contact previous;
         String name = contact.getName();
         assert name != null && !name.trim().equals("");
+
         previous =  putWithoutResizing(contact);
+
         if (previous == null && loadFactor() > maxLoadFactor) resizeTable();
         return previous;
     }
@@ -234,13 +263,17 @@ public class ContactsHashOpen implements IContactDB {
         System.out.println("RESIZING");
         Contact[] oldTable = table; // copy the reference
         int oldTableCapacity = tableCapacity;
-        tableCapacity = oldTableCapacity * 2;
+
+        //  increase to the following primes
+        tableCapacity = nextPrime(oldTableCapacity * 2);
+
         System.out.println("resizing to " + tableCapacity);
         table = new Contact[tableCapacity]; // make a new tyable
-        
+
         clearDB();
         numEntries = 0;
-        for (int i = 0; i != oldTableCapacity; i++) {
+
+        for (int i = 0; i < oldTableCapacity; i++) {
             if (oldTable[i] != null) { // dleted vakues not hashed across
                 putWithoutResizing(oldTable[i]);
             }
