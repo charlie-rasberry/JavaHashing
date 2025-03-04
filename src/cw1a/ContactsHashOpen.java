@@ -39,10 +39,15 @@ public class ContactsHashOpen implements IContactDB {
 
     private int hash(String s) {
         assert  s != null && !s.trim().equals(""); 
-        
-        // VERY BAD HASH FUNCTION -- Now gonna improve
-        
-        return Math.abs((s.charAt(0)) % table.length);   
+
+        int hash = 0;
+        //  prime number needed as multiplier
+        int MULTIPLIER = 31;
+        for (int i = 0; i < s.length(); i++) {
+            hash = (hash * MULTIPLIER + s.charAt(i)) % table.length;
+        }
+        return Math.abs(hash);
+        //  Original -- return Math.abs((s.charAt(0)) % table.length);
         
     }
 
