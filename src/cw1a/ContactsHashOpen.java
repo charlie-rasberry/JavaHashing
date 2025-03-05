@@ -52,8 +52,14 @@ public class ContactsHashOpen implements IContactDB {
         
     }
 
-    private double loadFactor() {
-        return (double) numEntries / (double) table.length * 100.0; 
+    private double loadFactor() {   //  ignore deleted markers
+        int actualEntries = 0;
+        for (Contact contact : table) {
+            if (contact != null && contact != DELETED) {
+                actualEntries++;
+            }
+        }
+        return (double) actualEntries / (double) table.length * 100.0;
         // note need for cast to double
     }
 
@@ -169,21 +175,23 @@ public class ContactsHashOpen implements IContactDB {
 
     
     private Contact putWithoutResizing(Contact contact) {
-      String name = contact.getName();
-      int pos = findPos(name);
-      Contact previous;
+        String name = contact.getName();
+        int pos = findPos(name);
+        Contact previous;
+        //  check if empty or deleted
+        if (table[pos] == null || table[pos] == DELETED) {
+            table[pos] = contact;
 
-      assert table[pos] == null || name.equals(table[pos].getName());
-      previous = table[pos]; // old value
-      if (previous == null) { // new entry
-         table[pos] = contact;
-         numEntries++;
-      } else {
-         table[pos] = contact; // overwriting 
-         
-      }
-      return previous;
-   }
+            if (table[pos] != DELETED) {    //  increment if it's not an overwritten entry
+                numEntries++;
+            }
+            previous = null;
+        } else {    //  overwrite existing entry
+            previous = table[pos];
+            table[pos] = contact;
+        }
+        return previous;
+    }
     
     /**
      * Inserts a contact object into the database, with the key of the supplied
@@ -244,8 +252,10 @@ public class ContactsHashOpen implements IContactDB {
         System.out.println("capacity " + table.length + " size " + numEntries
                 + " Load factor " + loadFactor() + "%");
         for (int i = 0; i != table.length; i++) {
-            if (table[i] != null) 
+            if (table[i] != null && table[i] != DELETED)
                 System.out.println(i + " " + table[i].toString());
+            else if (table[i] == DELETED)
+                System.out.println(i + " DELETED");
             else
                  System.out.println(i + " " + "_____");
             }
