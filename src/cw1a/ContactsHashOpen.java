@@ -63,22 +63,38 @@ public class ContactsHashOpen implements IContactDB {
         int pos = hash(name);
         int numVisited = 1;
         int offset = 1;
+        int firstDeletedIndex = -1;
 
         System.out.println("finding " + pos + ": " + name );
 
         while (table[pos] != null && !name.equals(table[pos].getName())) {
-            System.out.println("Visiting bucket " + pos + ": " + table[pos] );
+            System.out.println("Visiting bucket " + pos + ": " + table[pos]);
 
+            if (table[pos] == DELETED && firstDeletedIndex == -1) {
+                firstDeletedIndex = pos;
+            }
+
+            //  check name matches ignoring deleted markers
+            if (table[pos] != DELETED && name.equals(table[pos].getName())) {
+                //  if deleted position is found prefer that position
+                return firstDeletedIndex != -1 ? firstDeletedIndex : pos;
+            }
+
+
+            //  check if name
 
             pos = (pos + offset) % table.length;     // quadratic probing
             offset += 2;
             numVisited++;
-        }  
+
+            if (numVisited > table.length) {
+                break;
+            }
+        }
         System.out.println("number of  buckets visited = " + numVisited); //    Number of buckets visited each call is very high the total is extreme
         totalVisited += numVisited;
       
-        assert table[pos] == null || name.equals(table[pos].getName());
-        return pos;
+        return firstDeletedIndex != -1 ? firstDeletedIndex : pos;
     }
 
     private boolean isPrime(int n) {
@@ -156,6 +172,7 @@ public class ContactsHashOpen implements IContactDB {
       String name = contact.getName();
       int pos = findPos(name);
       Contact previous;
+
       assert table[pos] == null || name.equals(table[pos].getName());
       previous = table[pos]; // old value
       if (previous == null) { // new entry
@@ -197,12 +214,23 @@ public class ContactsHashOpen implements IContactDB {
      * @return the removed contact object mapped to the name, or null if the
      * name does not exist.
      */
+    //  identify deleted entries by marker
+    public static final Contact DELETED = new Contact("DELETED", "MARKER");
     public Contact remove(String name) {
         assert name != null && !name.trim().equals("");
+
         int pos = findPos(name);
-        System.out.println("remove not yet implemented");
+
+        if (table[pos] == null) {
+            return null;
+        }
+
+        Contact removedContact = table[pos];
+        table[pos] = DELETED;
+
+        numEntries--;
         
-        return null;
+        return removedContact;
     }
 
     /**
