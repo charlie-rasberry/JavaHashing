@@ -80,13 +80,6 @@ public class ContactsHashOpen implements IContactDB {
                 firstDeletedIndex = pos;
             }
 
-            //  check name matches ignoring deleted markers
-            if (table[pos] != DELETED && name.equals(table[pos].getName())) {
-                //  if deleted position is found prefer that position
-                return firstDeletedIndex != -1 ? firstDeletedIndex : pos;
-            }
-
-
             //  check if name
 
             pos = (pos + offset) % table.length;     // quadratic probing
@@ -97,7 +90,7 @@ public class ContactsHashOpen implements IContactDB {
                 break;
             }
         }
-        System.out.println("number of  buckets visited = " + numVisited); //    Number of buckets visited each call is very high the total is extreme
+        System.out.println("number of  buckets visited = " + numVisited);
         totalVisited += numVisited;
       
         return firstDeletedIndex != -1 ? firstDeletedIndex : pos;
@@ -181,14 +174,16 @@ public class ContactsHashOpen implements IContactDB {
         //  check if empty or deleted
         if (table[pos] == null || table[pos] == DELETED) {
             table[pos] = contact;
-
             if (table[pos] != DELETED) {    //  increment if it's not an overwritten entry
                 numEntries++;
+            } else {
+                System.out.println("Replaced DELETED Marker");
             }
             previous = null;
         } else {    //  overwrite existing entry
             previous = table[pos];
             table[pos] = contact;
+            System.out.println("Overwriting Entry");
         }
         return previous;
     }
